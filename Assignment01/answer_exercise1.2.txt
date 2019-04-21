@@ -1,0 +1,9 @@
+--------- l14 ---------
+/Assignment01_data/Part01_Landsat/230_077/LT042300771989071801T1 	- should be 21 files, but is 20
+--------- l15 ---------
+No corrupted scenes found (should be 21 files in each) 
+--------- l17 ---------
+/Assignment01_data/Part01_Landsat/230_077/LE072300772001082001T1 	- should be 19 files, but is 18
+/Assignment01_data/Part01_Landsat/230_079/LE072300792006010601T1 	- should be 19 files, but is 18
+--------- l18 ---------
+/Assignment01_data/Part01_Landsat/229_078/LC082290782013100901T1 	- should be 19 files, but is 18

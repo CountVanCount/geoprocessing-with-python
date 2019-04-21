@@ -1,0 +1,65 @@
+Execise 1.1
+
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/228_077
+l4 size: 		 0
+l5 size: 		 309
+l7 size: 		 282
+l8 size: 		 82
+sum dirs: 		 673
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/228_078
+l4 size: 		 0
+l5 size: 		 310
+l7 size: 		 280
+l8 size: 		 81
+sum dirs: 		 671
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/228_079
+l4 size: 		 0
+l5 size: 		 292
+l7 size: 		 264
+l8 size: 		 75
+sum dirs: 		 631
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/229_077
+l4 size: 		 1
+l5 size: 		 281
+l7 size: 		 290
+l8 size: 		 71
+sum dirs: 		 643
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/229_078
+l4 size: 		 0
+l5 size: 		 272
+l7 size: 		 300
+l8 size: 		 70
+sum dirs: 		 642
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/229_079
+l4 size: 		 0
+l5 size: 		 268
+l7 size: 		 300
+l8 size: 		 64
+sum dirs: 		 632
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/230_077
+l4 size: 		 4
+l5 size: 		 303
+l7 size: 		 286
+l8 size: 		 77
+sum dirs: 		 670
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/230_078
+l4 size: 		 4
+l5 size: 		 290
+l7 size: 		 289
+l8 size: 		 76
+sum dirs: 		 659
+---------------
+check footprint: /home/billy/workspaces/Geoprocessing/Assignment01/Assignment01_data/Part01_Landsat/230_079
+l4 size: 		 3
+l5 size: 		 281
+l7 size: 		 287
+l8 size: 		 75
+sum dirs: 		 646
+

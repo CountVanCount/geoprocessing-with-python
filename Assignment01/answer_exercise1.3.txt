@@ -1,0 +1,23 @@
+00_Parcel		 seems to be a shape-file
+01_Grows		 seems to be a shape-file
+02_Chinook		 seems to be a shape-file
+03_Steelhead		 seems to be a shape-file
+04_AgriLands		 seems to be a shape-file
+05_PublicLands		 seems to be a shape-file
+06_VegetationType		 seems to be a shape-file
+07_Watershed		 seems to be a shape-file
+08_Willamsont		 seems to be a shape-file
+09_Roads		 seems to be a shape-file
+10_Cities		 seems to be a shape-file
+11_Streams		 seems to be a shape-file
+11_Streams_AllDissolve		 seems to be a shape-file
+11_Streams_DownNameDissolve		 seems to be a shape-file
+12_TimberHarvestPlan_PlanDissolve		 seems to be a shape-file
+DEM_Humboldt		 seems to be a raster-file
+DEM_Humboldt_aspect		 seems to be a raster-file
+DEM_Humboldt_slope		 seems to be a raster-file
+Veg_AsRaster		 seems to be a raster-file
+Veg_AsRaster_30m		 seems to be a raster-file
+_OcenOutline		 seems to be a shape-file
+shape-files: 16
+raster-files: 5

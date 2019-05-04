@@ -1,11 +1,13 @@
 # ####################################### LOAD REQUIRED LIBRARIES ############################################# #
+# due to problems with python 3.7, run this with version 3.6
 import time
 import os
-import pandas
 import statistics
-import re
+from collections import Counter
 
 # ####################################### SET TIME-COUNT ###################################################### #
+import pandas as pandas
+
 starttime = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
 print("--------------------------------------------------------")
 print("Starting process, time: " + starttime)
@@ -20,6 +22,9 @@ primary_table_filename = "DE_2015_20180724.csv"
 observation_file = os.path.join(data_home, primary_table_filename)
 grid_table_filename = "GRID_CSVEXP_20171113.csv"
 
+raw_values_dict = {}  # dict of dictionaries for data from primary table, each entry correspnds to a row (dict like {column -> {index -> value}})
+filtered_values_dict = {}
+
 
 # ####################################### FUNCTIONS ########################################################### #
 
@@ -30,51 +35,99 @@ def writeIntoFile(filePath, textToWrite):
     f.close()
 
 
+# reads the data from the primary-table and writes it to the global variable 'raw_values_dict'
+def read_data_from_primary_table():
+    string_to_write = ""
+    if observation_file:
+        global raw_values_dict
+        # string_to_write += "Observation FilePath: " + observation_file + "\n"
+        raw_values_dict = pandas.read_csv(observation_file, index_col=False).transpose().to_dict()
+        string_to_write += "Number of sampling points before filtering: " + str(len(raw_values_dict)) + "\n"
+    else:
+        print("Observation file does not exist. Check file-path")
+    return string_to_write
+
+
+# reads data from the global variable 'raw_values_dict' and writes the filtered data (corresponding to the filter
+# criteria given in the exercise-text) to the global variable 'filtered_values_dict'
+def fliter_raw_data():
+    global filtered_values_dict
+    for key in raw_values_dict:
+        if filter_single_sampling_point(raw_values_dict[key]):
+            filtered_values_dict[key] = raw_values_dict[key]
+    return "Number of sampling points after filtering: " + str(len(filtered_values_dict)) + "\n"
+
+
+# checks if a given sampling_point should be filtered out (returns 'False') or not (returns 'True')
+def filter_single_sampling_point(sampling_point):
+    if sampling_point.get('OBS_TYPE') != 1:
+        return False
+    if sampling_point.get('OBS_DIR') != 1:  # in exercise 1 it is called 'OBS_DIRECT'-but this seems to be what is meant
+        return False
+    if sampling_point.get('OBS_RADIUS') > 3:
+        return False
+    if sampling_point.get('AREA_SIZE') < 2:
+        return False
+    if sampling_point.get('FEATURE_WIDTH') <= 1:
+        return False
+    if sampling_point.get('LC1_PCT') < 5:
+        return False
+    return True
+
+
+# evaluates the data from the given dict (which should be 'raw_values_dict' or 'filtered_values_dict') and returns
+# a human readable string of the results
+def evaluate_data(dict):
+    string_to_write = ""
+    if dict:
+        #collect data
+        land_cover_classes = []
+        observer_distance = []
+        class_A21_observer_distance = []
+
+
+        for key in dict:
+            land_cover_classes.append(dict[key].get('LC1'))
+            observer_distance.append(dict[key].get('OBS_DIST'))
+
+            if dict[key].get('LC1') == "A21":
+                class_A21_observer_distance.append(dict[key].get('OBS_DIST'))
+
+        #create strings
+        land_cover_classes_set = set(land_cover_classes)
+        string_to_write += "Number of land cover classes (LC1): " + str(len(land_cover_classes_set)) + "\n"
+        # string_to_write += "land cover classes (LC1): " +str(land_cover_classes_set) + "\n"
+
+        string_to_write += "Average observer distance (OBS_DIST): " + str(statistics.mean(observer_distance)) + "\n"
+        # string_to_write += "observer distance list: " + str(observer_distance) + "\n"
+
+        string_to_write += "Average observer distance (OBS_DIST) of land cover class(LC1) 'A21': " + str(
+            statistics.mean(class_A21_observer_distance)) + "\n"
+        # string_to_write += "observer distance list of class A21: " + str(class_A21_observer_distance) + "\n"
+
+        counter_dict = Counter(land_cover_classes).most_common(1)
+        string_to_write += "Number of most common samples in land cover class (LC1): " + str(counter_dict) + "\n"
+    else:
+        string_to_write = "Given dict is empty or null."
+    return string_to_write
+
+
 # ####################################### PROCESSING ########################################################## #
 
+string_to_write = ""
 
-#read: https://pandas.pydata.org/pandas-docs/stable/reference/frame.html
-# Filter criteria:
-# • OBS_TYPE = 1
-# • OBS_DIRECT = 1
-# • OBS_RADIUS <= 2
-# • AREA_SIZE >= 2
-# • FEATURE_WIDTH > 1
-# • LC1_PCT >= 5
+string_to_write += "----------Before filtering: \n"
+string_to_write += read_data_from_primary_table()
+string_to_write += evaluate_data(raw_values_dict)
 
-print(observation_file)
-data_frame = pandas.read_csv(observation_file)
-values = data_frame.values
-# values = data_frame.to_numpy() #New in version 0.24.0.
-print("number of values: " + str(len(values)))
-counter = 0
-number_to_print = 1
-print(data_frame.columns)
-# print(data_frame.columns.values)
+string_to_write += "\n----------After filtering: \n"
+string_to_write += fliter_raw_data()
+string_to_write += evaluate_data(filtered_values_dict)
 
-# for label, content in data_frame.iteritems():
-#     if (number_to_print == counter):
-#         break
-#     print(label)
-#     print(content)
-#     counter += 1
+print(string_to_write)
 
-
-# examples
-# x = [1, 2, 3]
-# y = ["a", "b", "c"]
-# zipped = zip(x, y)
-# for item in zipped:
-#     print(item)
-
-# for item in enumerate(y):
-#     print(item)
-
-
-# get_data_from_files()
-# stringToWrite = ""
-# stringToWrite = get_number_of_layers()
-# print("-----------shapelist: " + (str(len(shape_list))))
+# filePath = os.path.join(localhome, "answer_exercise2.1.txt")
+# writeIntoFile(filePath, string_to_write)
 
 # ####################################### END TIME-COUNT AND PRINT TIME STATS################################## #
 print("")

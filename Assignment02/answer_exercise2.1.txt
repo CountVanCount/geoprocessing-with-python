@@ -1,0 +1,13 @@
+----------Before filtering: 
+Number of sampling points before filtering: 26779
+Number of land cover classes (LC1): 67
+Average observer distance (OBS_DIST): 672.2130400687106
+Average observer distance (OBS_DIST) of land cover class(LC1) 'A21': 64.89917695473251
+Number of most common samples in land cover class (LC1): [('E20', 4894)]
+
+----------After filtering: 
+Number of sampling points after filtering: 16200
+Number of land cover classes (LC1): 61
+Average observer distance (OBS_DIST): 13.84037037037037
+Average observer distance (OBS_DIST) of land cover class(LC1) 'A21': 17.536585365853657
+Number of most common samples in land cover class (LC1): [('E20', 3734)]

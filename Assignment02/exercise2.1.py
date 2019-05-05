@@ -3,10 +3,13 @@
 import time
 import os
 import statistics
+import copy
 from collections import Counter
+import pandas as pandas
+from geopandas import GeoDataFrame
+from shapely.geometry import Point
 
 # ####################################### SET TIME-COUNT ###################################################### #
-import pandas as pandas
 
 starttime = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
 print("--------------------------------------------------------")
@@ -21,6 +24,11 @@ data_home = os.path.join(localhome, "data")
 primary_table_filename = "DE_2015_20180724.csv"
 observation_file = os.path.join(data_home, primary_table_filename)
 grid_table_filename = "GRID_CSVEXP_20171113.csv"
+grid_file = os.path.join(data_home, grid_table_filename)
+
+shapefile_home = os.path.join(localhome, "shapefile")
+filtered_shapefilename = "filtered_DE_2015_20180724.shp"
+shapefile = os.path.join(shapefile_home, filtered_shapefilename)
 
 raw_values_dict = {}  # dict of dictionaries for data from primary table, each entry correspnds to a row (dict like {column -> {index -> value}})
 filtered_values_dict = {}
@@ -52,9 +60,17 @@ def read_data_from_primary_table():
 # criteria given in the exercise-text) to the global variable 'filtered_values_dict'
 def fliter_raw_data():
     global filtered_values_dict
+    filtered_values_dict = copy.deepcopy(raw_values_dict)
+
     for key in raw_values_dict:
-        if filter_single_sampling_point(raw_values_dict[key]):
-            filtered_values_dict[key] = raw_values_dict[key]
+        #old version: add
+        # if filter_single_sampling_point(raw_values_dict[key]):
+        #     filtered_values_dict[key] = raw_values_dict[key]
+
+        #new version, using deepcopy and pop from it
+        if not filter_single_sampling_point(raw_values_dict[key]):
+            filtered_values_dict.pop(key, None)
+
     return "Number of sampling points after filtering: " + str(len(filtered_values_dict)) + "\n"
 
 
@@ -112,6 +128,22 @@ def evaluate_data(dict):
     return string_to_write
 
 
+# merges the filtered_values_dict and the gridfile and composes an ESRI shapefile
+def create_esri_file():
+    grid = pandas.read_csv(grid_file)
+    df = pandas.DataFrame(filtered_values_dict).transpose()
+    ds = pandas.merge(grid, df)
+
+    geometry = [Point(xy) for xy in zip(df.GPS_LONG, df.GPS_LAT)]
+    crs = "+init=epsg:4326"  # http://www.spatialreference.org/ref/epsg/4326/
+    geo_df = GeoDataFrame(df, crs=crs, geometry=geometry)
+
+    if not os.path.exists(shapefile_home):
+        os.makedirs(shapefile_home)
+
+    geo_df.to_file(driver='ESRI Shapefile', filename=shapefile)
+
+
 # ####################################### PROCESSING ########################################################## #
 
 string_to_write = ""
@@ -125,6 +157,8 @@ string_to_write += fliter_raw_data()
 string_to_write += evaluate_data(filtered_values_dict)
 
 print(string_to_write)
+
+create_esri_file()
 
 # filePath = os.path.join(localhome, "answer_exercise2.1.txt")
 # writeIntoFile(filePath, string_to_write)

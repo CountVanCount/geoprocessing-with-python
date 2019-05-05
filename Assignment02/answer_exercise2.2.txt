@@ -1,0 +1,15 @@
+----------Before filtering: 
+Number of landsat scenes: 9551
+Average geometric accuracy X: 5.914338657202011
+Average geometric accuracy Y: 6.1850205560485065
+Average Land Cloud Cover: 58.0656099611222
+Number of unique WRS Path/Row combination: 86
+Most common wrs combinations: [('[194, 23]', 139), ('[194, 22]', 138), ('[194, 24]', 138), ('[191, 28]', 138), ('[194, 21]', 137), ('[194, 28]', 137), ('[191, 25]', 137), ('[191, 26]', 137), ('[191, 27]', 137), ('[195, 21]', 137)]
+
+----------After filtering: 
+Number of landsat scenes after filtering: 4668
+Average geometric accuracy X: 5.6971030419880035
+Average geometric accuracy Y: 5.95804263067695
+Average Land Cloud Cover: 31.09049162730786
+Number of unique WRS Path/Row combination: 69
+Most common wrs combinations: [('[194, 28]', 101), ('[195, 28]', 98), ('[192, 28]', 97), ('[193, 28]', 92), ('[190, 28]', 86), ('[196, 28]', 84), ('[194, 27]', 83), ('[191, 28]', 83), ('[193, 27]', 81), ('[190, 27]', 81)]

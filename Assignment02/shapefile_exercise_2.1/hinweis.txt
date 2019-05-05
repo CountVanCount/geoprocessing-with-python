@@ -1,0 +1,3 @@
+Das .dbf konnte nicht hochgeladen werden, weil es 76,2MB groß ist und hier max 10 MB erlaubt sind.
+
+Es ist aber ins git geladen: https://github.com/CountVanCount/geoprocessing-with-python

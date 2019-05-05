@@ -26,7 +26,7 @@ observation_file = os.path.join(data_home, primary_table_filename)
 grid_table_filename = "GRID_CSVEXP_20171113.csv"
 grid_file = os.path.join(data_home, grid_table_filename)
 
-shapefile_home = os.path.join(localhome, "shapefile")
+shapefile_home = os.path.join(localhome, "shapefile_exercise_2.1")
 filtered_shapefilename = "filtered_DE_2015_20180724.shp"
 shapefile = os.path.join(shapefile_home, filtered_shapefilename)
 
@@ -60,16 +60,16 @@ def read_data_from_primary_table():
 # criteria given in the exercise-text) to the global variable 'filtered_values_dict'
 def fliter_raw_data():
     global filtered_values_dict
-    filtered_values_dict = copy.deepcopy(raw_values_dict)
+    # filtered_values_dict = copy.deepcopy(raw_values_dict)
 
     for key in raw_values_dict:
         #old version: add
-        # if filter_single_sampling_point(raw_values_dict[key]):
-        #     filtered_values_dict[key] = raw_values_dict[key]
+        if filter_single_sampling_point(raw_values_dict[key]):
+            filtered_values_dict[key] = raw_values_dict[key]
 
         #new version, using deepcopy and pop from it
-        if not filter_single_sampling_point(raw_values_dict[key]):
-            filtered_values_dict.pop(key, None)
+        # if not filter_single_sampling_point(raw_values_dict[key]):
+        #     filtered_values_dict.pop(key, None)
 
     return "Number of sampling points after filtering: " + str(len(filtered_values_dict)) + "\n"
 

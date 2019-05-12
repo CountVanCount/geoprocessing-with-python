@@ -12,6 +12,7 @@ from shapely.geometry import Point
 from shapely.geometry import box
 import gdal
 import numpy
+import ntpath
 import itertools
 from collections import namedtuple
 
@@ -42,8 +43,9 @@ tif2015_file = os.path.join(data_home, tif2015)
 tif2018 = "tileID_410_y2018.tif"
 tif2018_file = os.path.join(data_home, tif2018)
 
-uper_left_intersec = ()
-lower_right_intersec = ()
+intersec_dict = {} #key=filname, value=tuple of array-positions, wher the data should be sliced
+intersect_array_dict = {}
+
 # ####################################### FUNCTIONS ########################################################### #
 
 
@@ -57,44 +59,45 @@ def writeIntoFile(filePath, textToWrite):
 # Prints out the coordinates of all four corners (rounded to three decimals)
 def find_overlap_area(file_list):
     print("---Try to find overlaping areas.")
-    global uper_left_intersec
-    global lower_right_intersec
-    geo_transform_list = []
-    rect_points_list = []
+    global intersec_dict
+    geo_transform_dict = {}
+    UL_and_LR_tuple_list = []
+    #collect the geodatatransforms and corners of all files
     for file in file_list:
-
+        #geodatatransform
         gdal_dataset = gdal.Open(file)
         geo_transform = gdal_dataset.GetGeoTransform() #Fetch the affine transformation coefficients
-        geo_transform_list.append(geo_transform)
+        geo_transform_dict[file] = geo_transform
 
+        #corners
         width = gdal_dataset.RasterXSize
         height = gdal_dataset.RasterYSize
-
-        rect_points = calculate_all_corners(geo_transform, width, height)
-        rect_points_list.append(rect_points)
-
-        # print(calculate_all_corners(inv_gt, ))
-
-        # projection = gdal_dataset.GetProjection()
-        # print(projection)
-        # origin = Point(geo_transform[0], geo_transform[3])
-        # print (origin)
+        UL_and_LR_tuple = calculate_UL_and_LR(geo_transform, width, height)
+        UL_and_LR_tuple_list.append(UL_and_LR_tuple)
+        print("UL_and_LR_tuple: " + str(UL_and_LR_tuple))
         print("-------------")
-    isPixelSizeOkay = check_pixelSize_and_pixelRotation(geo_transform_list)
-    uper_left_intersec = calculate_upper_left(rect_points_list)
-    lower_right_intersec = calculate_lower_right(rect_points_list)
 
-    for gt in geo_transform_list:
-        print("original: \t" + str(gt))
-        inv_gt = gdal.InvGeoTransform(gt)
-        print("invers: \t" + str(inv_gt))
+    # for further calculations we got to be sure that pixelSize and rotation is the same in all geotransforms
+    if check_pixelSize_and_pixelRotation(list(geo_transform_dict.values())):
 
-        image_coord = calculate_image_coord(inv_gt, uper_left_intersec[0],
-                                            uper_left_intersec[1] + width * geo_transform[4] + height * geo_transform[5])
-        # image_coord = calculate_image_coord(inv_gt, geo_transform[0],
-        #                                     geo_transform[3] + width * geo_transform[4] + height * geo_transform[5])
+        #do the intersection using the corner-data
+        uper_left_intersec = calculate_upper_left(UL_and_LR_tuple_list)
+        lower_right_intersec = calculate_lower_right(UL_and_LR_tuple_list)
+        print("uper_left_intersec " + str(uper_left_intersec))
+        print("lower_right_intersec " + str(lower_right_intersec) + "\n")
+        #calculate the pixel-coords of the intersec-corners for each geotransorm
+        for file, gt in geo_transform_dict.items():
+            inv_gt = gdal.InvGeoTransform(gt)
 
-        print(image_coord)
+            image_coord_UL = calculate_image_coord(inv_gt, uper_left_intersec[0], uper_left_intersec[1])
+            image_coord_LR = calculate_image_coord(inv_gt, lower_right_intersec[0], lower_right_intersec[1])
+            print("Array-Coords for intersection: "+ str(file))
+            print(str(image_coord_UL) + " / " + str(image_coord_LR))
+            intersec_dict[file] = (image_coord_UL, image_coord_LR)
+
+            #print out all 4 corners
+            calculate_corners(image_coord_UL[0], image_coord_UL[1], image_coord_LR[0], image_coord_LR[1])
+            print("-------------")
 
 
 def calculate_image_coord(inv_gt, x, y):
@@ -106,21 +109,28 @@ def calculate_image_coord(inv_gt, x, y):
 
 
 #source: https://stackoverflow.com/questions/2922532/obtain-latitude-and-longitude-from-a-geotiff-file
-def calculate_all_corners(geo_transform, width, height):
+def calculate_UL_and_LR(geo_transform, width, height):
     minx = geo_transform[0]
-    miny = geo_transform[3] + width * geo_transform[4] + height * geo_transform[5]
-    maxx = geo_transform[0] + width * geo_transform[1] + height * geo_transform[2]
+
+    # this is the solution from stackoverflow, but why should width*pixelwidth be added to the y-axis-minimum?
+    # miny = geo_transform[3] + width * geo_transform[4] + height * geo_transform[5]
+    miny = geo_transform[3] + height * geo_transform[5]
+
+    #this is the solution from stackoverflow, but why should height*pixelheight be added to the x-axis-maximum?
+    # maxx = geo_transform[0] + width * geo_transform[1] + height * geo_transform[2]
+    maxx = geo_transform[0] + width * geo_transform[1]
     maxy = geo_transform[3]
-    return print_corners(minx, miny, maxx, maxy)
+    # return print_corners(minx, miny, maxx, maxy)
+    return calculate_corners(minx, maxy, maxx, miny) #minx/maxy = UL, maxx/miny = LR)
 
 def print_corners_from_2_points(uper_left, lower_right):
-    return print_corners(uper_left[0], uper_left[1], lower_right[0], lower_right[1])
+    return calculate_corners(uper_left[0], uper_left[1], lower_right[0], lower_right[1])
 
-def print_corners(minx, miny, maxx, maxy):
-    uper_left = (minx, miny)
-    uper_right = (maxx, miny)
-    lower_left = (minx, maxy)
-    lower_right = (maxx, maxy)
+def calculate_corners(minx, maxy, maxx, miny):
+    uper_left = (minx, maxy)
+    uper_right = (maxx, maxy)
+    lower_left = (minx, miny)
+    lower_right = (maxx, miny)
     print("Coordinates of the 4 Corners: ")
     print("uper_left: \t\t" + str(uper_left))
     print("uper_right: \t" + str(uper_right))
@@ -129,13 +139,14 @@ def print_corners(minx, miny, maxx, maxy):
     return (uper_left, lower_right)
 
 
+
 def calculate_upper_left(rect_points_list):
     upper_left_x_list = []
     upper_left_y_list = []
     for rect_points in rect_points_list:
         upper_left_x_list.append(rect_points[0][0])
         upper_left_y_list.append(rect_points[0][1])
-    return (numpy.amax(upper_left_x_list), numpy.amax(upper_left_y_list))
+    return (numpy.amax(upper_left_x_list), numpy.amin(upper_left_y_list))
 
 def calculate_lower_right(rect_points_list):
     lower_right_x_list = []
@@ -143,8 +154,7 @@ def calculate_lower_right(rect_points_list):
     for rect_points in rect_points_list:
         lower_right_x_list.append(rect_points[1][0])
         lower_right_y_list.append(rect_points[1][1])
-    return (numpy.min(lower_right_x_list), numpy.min(lower_right_y_list))
-
+    return (numpy.min(lower_right_x_list), numpy.amax(lower_right_y_list))
 
 
 
@@ -169,70 +179,95 @@ def check_pixelSize_and_pixelRotation(geo_transform_list):
     return False
 
 
-def print_geotransform_list(geo_transform_list):
+def slice_all_images():
     string_to_write = ""
-    for geo_transform in geo_transform_list:
-        string_to_write += "geo_transform: " + str(geo_transform) + "\n"
-    print(string_to_write)
+    for key, value in intersec_dict.items():
+        string_to_write += slice_image(key, value)
     return string_to_write
-
 
 # Applies image slicing using numpy.
 # Loads the part of the raster files into individual arrays that is contained in the overlap area.
 # Prints out the size of the overlap (i.e., the array dimensions)
-def slice_image():
-    print("---Try to slize images")
-
-    print("Size of the overlap-Array-Size")
+def slice_image(file, array_coords):
     string_to_write = ""
-    if tif2000_file:
-        ds = gdal.Open(tif2000_file)
+    string_to_write += "\n---Try to slize image: " + str(file) + "\n"
+    string_to_write +="array_coords: " + str(array_coords)+ "\n"
+    if file:
+        ds = gdal.Open(file)
         band = ds.GetRasterBand(1)
         arr = band.ReadAsArray()
 
-        string_to_write += str(arr)
-        string_to_write += "\nmin: " + str(numpy.amin(arr))
-        string_to_write += "\nmax: " + str(numpy.amax(arr))
-        string_to_write += "\nmmean: " + str(numpy.mean(arr))
-        string_to_write += "\nmedian: " + str(numpy.median(arr))
-        # string_to_write += "\nrange: " + str(numpy.arange(arr))
-        string_to_write += "\nstandard deviation: " + str(numpy.std(arr))
-        string_to_write += "\n slicing \n"
-        arr = arr[0:2, 0:1]  # row 1,
-        string_to_write += str(arr)
+        # slicing: in numpy the syntax is (y/x) respectively (row/column)
+        arr = arr[array_coords[0][1]:array_coords[1][1], array_coords[0][0]:array_coords[1][0]]
+        # string_to_write += "after slicing: \n" + do_statistics(file, arr)
 
-        # arr_min = arr.Min()
-        # arr_max = arr.Max()
-        # arr_mean = int(arr.mean())
-        # string_to_write += str(arr_min +", " +arr_max +", " +arr_mean +"\n")
-
+        intersect_array_dict[file] = arr
     else:
-        print("tif file does not exist. Check file-path")
+        string_to_write += "tif file does not exist. Check file-path"
+    return string_to_write
+
+def do_statistic_all_files():
+    string_to_write = ""
+    for key in intersect_array_dict:
+        string_to_write += do_statistics_for_file(key, intersect_array_dict[key]) + "\n"
     return string_to_write
 
 
+def do_statistics_for_file(file, arr):
+    file = str(ntpath.basename(file))
+    return do_statistics_for_string(file, arr)
+
 # Calculates the mean, median, min, max, range, standard deviation for each year.
 # Calculate the same statistics for the image differences between 2000-2010, and 2010-2018.
-def do_statistics():
-    print("---do_statistics")
+def do_statistics_for_string(text, arr):
+    string_to_write = "---do statistics for " + text + "\n"
+    if len(arr) > 0:
+        # string_to_write += str(arr)
+        shape = arr.shape
+        string_to_write += "max x size: \t\t" + str(shape[1]) + "\n"
+        string_to_write += "max y size: \t\t" + str(shape[0]) + "\n"
 
-
+        string_to_write += "min: \t\t\t\t" + str(numpy.amin(arr))+ "\n"
+        string_to_write += "max: \t\t\t\t" + str(numpy.amax(arr))+ "\n"
+        string_to_write += "mean: \t\t\t\t" + str(numpy.mean(arr))+ "\n"
+        string_to_write += "median: \t\t\t" + str(numpy.median(arr))+ "\n"
+        string_to_write += "range: \t\t\t\t" + str(numpy.amax(arr) - numpy.amin(arr))+ "\n"
+        string_to_write += "standard deviation: " + str(numpy.std(arr))+ "\n"
+        return string_to_write
+    return "array ist leer\n"
 
 # ####################################### PROCESSING ########################################################## #
 
 string_to_write = ""
 
 
+def calculate_image_def(minuend, subtrahend):
+    string_to_write = ""
+    if minuend in intersect_array_dict and subtrahend in intersect_array_dict:
+        arr_minuend = intersect_array_dict[minuend]
+        arr_subtrahend = intersect_array_dict[subtrahend]
+        sub = arr_minuend-arr_subtrahend
+        # file = str(ntpath.basename(file))
+        string_to_write += do_statistics_for_string(str(ntpath.basename(minuend)) + " - " + str(ntpath.basename(subtrahend)), sub)
+    else:
+        string_to_write = "Error in calculate_image_def, file not in intersect_array_dict"
+    return string_to_write
 
 # string_to_write += read_data_from_tif_file()
 #
-print(string_to_write)
 file_list =[tif2000_file, tif2005_file, tif2010_file, tif2015_file, tif2018_file]
 # file_list =[tif2000_file, tif2005_file]
 find_overlap_area(file_list)
-print_corners_from_2_points(uper_left_intersec, lower_right_intersec)
+print("\nintersec_dict: ")
+print(intersec_dict)
 
-# filePath = os.path.join(localhome, "answer_exercise2.2.txt")
+print(slice_all_images())
+print(do_statistic_all_files())
+# print(calculate_image_def(tif2010_file, tif2000_file))
+print(calculate_image_def(tif2000_file, tif2010_file))
+print(calculate_image_def(tif2010_file, tif2018_file))
+
+# filePath = os.path.join(localhome, "answer_exercise3.txt")
 # writeIntoFile(filePath, string_to_write)
 
 # ####################################### END TIME-COUNT AND PRINT TIME STATS################################## #

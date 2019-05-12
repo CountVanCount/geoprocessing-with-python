@@ -105,8 +105,6 @@ def calculate_image_coord(inv_gt, x, y):
     xoff, yoff = map(int, offsets)
     return (xoff, yoff)
 
-    # value = band.ReadAsArray(xoff, yoff, 1, 1)[0, 0]
-
 
 #source: https://stackoverflow.com/questions/2922532/obtain-latitude-and-longitude-from-a-geotiff-file
 def calculate_UL_and_LR(geo_transform, width, height):
@@ -236,10 +234,6 @@ def do_statistics_for_string(text, arr):
         return string_to_write
     return "array ist leer\n"
 
-# ####################################### PROCESSING ########################################################## #
-
-string_to_write = ""
-
 
 def calculate_image_def(minuend, subtrahend):
     string_to_write = ""
@@ -253,8 +247,8 @@ def calculate_image_def(minuend, subtrahend):
         string_to_write = "Error in calculate_image_def, file not in intersect_array_dict"
     return string_to_write
 
-# string_to_write += read_data_from_tif_file()
-#
+# ####################################### PROCESSING ########################################################## #
+
 file_list =[tif2000_file, tif2005_file, tif2010_file, tif2015_file, tif2018_file]
 # file_list =[tif2000_file, tif2005_file]
 find_overlap_area(file_list)

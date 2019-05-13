@@ -1,0 +1,28 @@
+- daten auslesen (os.walk) (gdal für pixel-array)
+    - je bild {directory: (sr-file-array, qa-file-array)}
+- jedes bild durchlaufen
+    -darin jeden pixel durchlaufen
+        - für jeden pixel schauen, ob die informationen wolken sind (im qa-file)
+        - falls pixel keine wolke/no data/schatten ist, daten sammeln (aus allen 6 Bändern?)
+            - {(x,y): {band: (list of pixel)}}
+- am ende für jedes pixel den durschnitt bilden, für jedes band? (weggeworfene pixel sind da schon nicht mehr drin)
+- beim schreiben des neuen qa-files alle pixel auf okay setzen
+
+
+
+anderer ansatz:
+- cloud-mask: feststellen, welche pixel unbrauchbar sind
+- im sr-file-array die pixel None setzen
+- numpy (1000, 1000, 6, 17)
+    -> 1000x1000, 6 bänder, 17 files
+    -> arbeiten mit numpy.arrays verhindern for-loops (noch mal checken, ob im hintergrund nicht doch loops durchlaufen werden)
+- np.nanmean -> ignoriert none
+- array broadcasting -> wenn bei operationan auf matrizen die dimensionen nicht passen, wird mit broadcasting aufgefüllt (für die lösung mit dem 6x17 dimensionalen numpy-array müssen wahrscheinlich teile aufgefüllt werden
+    -> man fügt die cloud mask als 7. band hinzu -> das muss dann aufgefüllt werden
+    -> die werte aus den anderen 6 bändern werden dann mit 0 (oder ähnlichem) gefüllt für alle werte, die im 7. band false sind
+        => scheint eine scheiß lösung zu sein, weil ja auch "echte" 0en als werte gespeichert sein könnten
+
+- hinweis: int-array können keine None enthalten, float schon.... checken, ob das wirklcih so ist
+- hinweis: 0,1,3 sind die guten pixel :)
+dasdg
+

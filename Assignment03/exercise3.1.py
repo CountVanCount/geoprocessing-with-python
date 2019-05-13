@@ -2,20 +2,9 @@
 # due to problems with python 3.7, run this with version 3.6
 import time
 import os
-import statistics
-import math
-from collections import Counter
-import pandas as pandas
-from Onboard.utils import Rect
-from geopandas import GeoDataFrame
-from shapely.geometry import Point
-from shapely.geometry import box
 import gdal
 import numpy
 import ntpath
-import itertools
-from collections import namedtuple
-
 
 # ####################################### SET TIME-COUNT ###################################################### #
 
@@ -250,14 +239,12 @@ def calculate_image_def(minuend, subtrahend):
 # ####################################### PROCESSING ########################################################## #
 
 file_list =[tif2000_file, tif2005_file, tif2010_file, tif2015_file, tif2018_file]
-# file_list =[tif2000_file, tif2005_file]
 find_overlap_area(file_list)
 print("\nintersec_dict: ")
 print(intersec_dict)
 
 print(slice_all_images())
 print(do_statistic_all_files())
-# print(calculate_image_def(tif2010_file, tif2000_file))
 print(calculate_image_def(tif2000_file, tif2010_file))
 print(calculate_image_def(tif2010_file, tif2018_file))
 

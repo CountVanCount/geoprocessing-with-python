@@ -1,0 +1,4 @@
+Leider ist das generierte tif größer als 10MB (nämlich 24MB, gepackt immer noch 16MB) - moodle lässt den Upload daher nicht zu.
+Das Bild ist aber ins git eingecheckt: https://github.com/CountVanCount/geoprocessing-with-python/tree/master/Assignment04
+
+

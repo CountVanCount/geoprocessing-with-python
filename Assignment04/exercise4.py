@@ -4,7 +4,6 @@ import time
 import os
 import re
 import gdal
-from osgeo import osr
 import numpy
 import numpy.ma as ma
 from osgeo import gdal

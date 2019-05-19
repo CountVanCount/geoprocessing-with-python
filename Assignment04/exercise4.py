@@ -4,9 +4,11 @@ import time
 import os
 import re
 import gdal
+from osgeo import osr
 import numpy
 import numpy.ma as ma
-import ntpath
+from osgeo import gdal
+from osgeo import gdal_array
 
 # ####################################### SET TIME-COUNT ###################################################### #
 
@@ -25,11 +27,49 @@ folder_files_dict = {} #key=folder #value=list of the 2 tif-files
 folder_array_dict = {} #key=folder #value=array of the 6 bands-np-array
 folder_mask_dict = {} #key=folder #value=mask-array
 number_of_bands = 0
-
+geo_transform = None
+projection = None
 
 
 
 # ####################################### FUNCTIONS ########################################################### #
+
+
+def get_np_array_for_qa_file(folder, qa_file):
+    ds = gdal.Open(os.path.join(folder, qa_file))
+    band = ds.GetRasterBand(1)
+    arr = band.ReadAsArray()
+    return arr
+
+def get_bands_as_array_for_sr_file(folder, sr_file):
+    ds = gdal.Open(os.path.join(folder, sr_file))
+    set_geo_transform(ds)
+    #https:// gis.stackexchange.com/questions/308767/how-to-calculate-mean-for-each-band-in-raster-using-gdal-and-python-3
+    bands = [ds.GetRasterBand(n + 1).ReadAsArray().astype('float') for n in range(ds.RasterCount)]
+    return bands
+
+def set_geo_transform(ds):
+    global geo_transform
+    global projection
+    if not geo_transform: #set once
+        geo_transform = ds.GetGeoTransform()
+        projection = ds.GetProjection()
+        print("Geotransform is set to: " + str(geo_transform))
+        print("Projection is set to: " + str(projection))
+
+
+def get_mask_for_np_array_from_qa_file(arr):
+    fct = numpy.vectorize(check_qa_file_pixel, otypes=[numpy.float])
+    return fct(arr)
+
+def check_qa_file_pixel(pixel_value):
+    if pixel_value == 0 or pixel_value == 1 or pixel_value == 3:
+        # return True
+        return False
+    if pixel_value == 255:
+        return numpy.nan
+    else:
+        return True
 
 
 def writeIntoFile(filePath, textToWrite):
@@ -73,37 +113,6 @@ def create_array_from_files():
     global number_of_bands
     print("folder_array_dict: " + str(len(folder_files_dict)))
 
-    # folder = "/home/billy/workspaces/geoprocessing-with-python/Assignment04/data/landsat8_2015/LC81930232015164LGN00"
-    # files = folder_files_dict[folder]
-    # qa_file = get_qa_file(files)
-    #
-    # qa_arr = get_np_array_for_qa_file(folder, qa_file)
-    # mask_array = get_mask_for_np_array_from_qa_file(qa_arr)
-    # folder_mask_dict[folder] = mask_array
-    #
-    # # get band-array
-    # sr_file = get_sr_file(files)
-    # bands_array = get_bands_as_array_for_sr_file(folder, sr_file)
-    # if not number_of_bands:
-    #     number_of_bands = len(bands_array)
-    # folder_array_dict[folder] = bands_array
-    #
-    #
-    # folder = "/home/billy/workspaces/geoprocessing-with-python/Assignment04/data/landsat8_2015/LC81930232015180LGN00"
-    # files = folder_files_dict[folder]
-    # qa_file = get_qa_file(files)
-    #
-    # qa_arr = get_np_array_for_qa_file(folder, qa_file)
-    # mask_array = get_mask_for_np_array_from_qa_file(qa_arr)
-    # folder_mask_dict[folder] = mask_array
-    #
-    # # get band-array
-    # sr_file = get_sr_file(files)
-    # bands_array = get_bands_as_array_for_sr_file(folder, sr_file)
-    # if not number_of_bands:
-    #     number_of_bands = len(bands_array)
-    # folder_array_dict[folder] = bands_array
-
     for folder, files in folder_files_dict.items():
          #create mask-array
         qa_file = get_qa_file(files)
@@ -119,7 +128,7 @@ def create_array_from_files():
         folder_array_dict[folder] = bands_array
 
 
-def calculate_mean_image():
+def get_masked_band_dict():
     # init dict of list
     band_dict = {} #key = number of band, value = list of arrays, from each file
     for item in range(0, number_of_bands):
@@ -130,77 +139,80 @@ def calculate_mean_image():
         mask = folder_mask_dict[folder]
         for index, band_array in enumerate(bands):
             masked_array = ma.masked_array(band_array, mask=mask)
-            band_dict[index].append(masked_array.filled(numpy.nan))
-
-    arr = band_dict[0]
-    mean = numpy.nanmean(ma.masked_array(arr, 0), axis=0)
-    print(mean)
-    # print(ma.masked_values(band_dict[0]))
+            band_dict[index].append(masked_array.filled(numpy.nan)) #fill masked array with NaNs
+    return band_dict
 
 
-def calculate_masked_band(band_array, mask_array):
-    return ma.masked_array(band_array, mask=mask_array)
+#see https://stackoverflow.com/questions/33537599/how-do-i-write-create-a-geotiff-rgb-image-file-in-python
+def write_mean_image(band_dict):
+    mean_list = []
+    #calulate mean
+    for band in band_dict.values():
+        mean_list.append(numpy.nanmean(ma.masked_array(band, 0), axis=0))
+    write_tif_image(mean_list, "mean_image")
 
 
+def write_tif_image(band_list, new_filename):
+    if band_list:
+        nx = band_list[0].shape[0] #we need that only once
+        ny = band_list[0].shape[1]
+        number_of_bands = len(band_list)
+
+        # create the n-band raster file
+        dst_ds = gdal.GetDriverByName('GTiff').Create(new_filename+'.tif', ny, nx, number_of_bands, gdal.GDT_Float32)
+        dst_ds.SetGeoTransform(geo_transform)  # specify coords
+        dst_ds.SetProjection(projection)
+        for index, data in enumerate(band_list):
+            dst_ds.GetRasterBand(index+1).WriteArray(data)
+        dst_ds.FlushCache()  # write to disk
+        dst_ds = None  # save, close
 
 
-def get_np_array_for_qa_file(folder, qa_file):
-    ds = gdal.Open(os.path.join(folder, qa_file))
-    band = ds.GetRasterBand(1)
-    arr = band.ReadAsArray()
-    return arr
+# calculates and writes the ndvi
+#see: http://ceholden.github.io/open-geo-tutorial/python/chapter_2_indices.html
+def write_max_ndvi_composite(folder, file):
+    # Open a GDAL dataset
+    complete_file = os.path.join(folder, file)
+    dataset = gdal.Open(complete_file, gdal.GA_ReadOnly)
+    set_geo_transform(dataset)
+    # Allocate our array using the first band's datatype
+    image_datatype = dataset.GetRasterBand(1).DataType
 
-def get_bands_as_array_for_sr_file(folder, sr_file):
-    ds = gdal.Open(os.path.join(folder, sr_file))
-    #https:// gis.stackexchange.com/questions/308767/how-to-calculate-mean-for-each-band-in-raster-using-gdal-and-python-3
-    bands = [ds.GetRasterBand(n + 1).ReadAsArray().astype('float') for n in range(ds.RasterCount)]
-    return bands
+    image = numpy.zeros(
+        (dataset.RasterYSize, dataset.RasterXSize, dataset.RasterCount),
+        dtype=gdal_array.GDALTypeCodeToNumericTypeCode(image_datatype))
 
+    bands = [dataset.GetRasterBand(n + 1).ReadAsArray().astype('float') for n in range(dataset.RasterCount)]
 
-def get_mask_for_np_array_from_qa_file(arr):
-    fct = numpy.vectorize(check_qa_file_pixel, otypes=[numpy.float])
-    return fct(arr)
+    for index, band in enumerate(bands):
+        image[:, :, index] = band
 
-def check_qa_file_pixel(pixel_value):
-    if pixel_value == 0 or pixel_value == 1 or pixel_value == 3:
-        # return True
-        return False
-    if pixel_value == 255:
-        return numpy.nan
-    else:
-        return True
+    b_red = 2
+    b_nir = 3
 
-
-# Calculates the mean, median, min, max, range, standard deviation for each year.
-# Calculate the same statistics for the image differences between 2000-2010, and 2010-2018.
-def do_statistics_for_string(text, arr):
-    string_to_write = "---do statistics for " + text + "\n"
-    if len(arr) > 0:
-        shape = arr.shape
-        string_to_write += "max x size: \t\t" + str(shape[1]) + "\n"
-        string_to_write += "max y size: \t\t" + str(shape[0]) + "\n"
-
-        string_to_write += "min: \t\t\t\t" + str(numpy.amin(arr))+ "\n"
-        string_to_write += "max: \t\t\t\t" + str(numpy.amax(arr))+ "\n"
-        string_to_write += "mean: \t\t\t\t" + str(numpy.mean(arr))+ "\n"
-        string_to_write += "median: \t\t\t" + str(numpy.median(arr))+ "\n"
-        string_to_write += "range: \t\t\t\t" + str(numpy.amax(arr) - numpy.amin(arr))+ "\n"
-        string_to_write += "standard deviation: " + str(numpy.std(arr))+ "\n"
-        return string_to_write
-    return "array ist leer\n"
+    ndvi = (image[:, :, b_nir] - image[:, :, b_red]) / (image[:, :, b_red] + image[:, :, b_nir])
+    write_tif_image([ndvi], file+"_ndvi")
 
 
 
 # ####################################### PROCESSING ########################################################## #
 
 
-create_folder_file_dict()
-create_array_from_files()
-calculate_mean_image()
-# print(folder_array_dict)
+# exercise 1-3
+# create_folder_file_dict()
+# create_array_from_files()
+# masked_bands = get_masked_band_dict()
+# write_mean_image(masked_bands)
 
-# filePath = os.path.join(localhome, "answer_exercise3.txt")
-# writeIntoFile(filePath, string_to_write)
+
+# exercice 4
+create_folder_file_dict()
+sat = "LC81930232015164LGN00"
+folder = os.path.join(landsat_home, sat)
+files = folder_files_dict[folder]
+sr_file = get_sr_file(files)
+write_max_ndvi_composite(folder, sr_file)
+
 
 # ####################################### END TIME-COUNT AND PRINT TIME STATS################################## #
 print("")

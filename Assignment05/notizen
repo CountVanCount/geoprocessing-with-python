@@ -1,0 +1,16 @@
+-(22, 218, 315) = 22 Layer, y, x
+    -> alles in 1 Pixel
+- jahreszahlangaben lassen leere jahre aus
+    -> es gibt also unterschiedliche anzahl von segmenten pro pixel
+- segmente = datentypen? = Jahre
+- vertices = werte aus einzelnen segmenten
+- rastercount
+- plt.plot(vertex_year, vertex_fit -> um zu plotten. Manchmal braucht man noch plt.show()
+- disturbance: 
+-> mask out forest
+-> für alle forest: zeros und years (spectral change with highest magnitude = größte sprünge), nur fitted values
+    -> z.B: 1995: 500, 1998: 2000. wenn das der größte abstand zwischen den jahren ist, dann 1995 in die 
+        lösung reinschreiben
+    -> magnitude muss > 500 sein
+
+- größten sprung ausrechnen: 
